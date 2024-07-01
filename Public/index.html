@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Web JS Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(-45deg, #fc00ff 0%, #00dbde 100%);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+        .card {
+            position: relative;
+            width: 90%;
+            max-width: 500px;
+            padding: 20px;
+            background-color: #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 8px;
+            cursor: pointer;
+            color: white;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+            margin: 20px 0;
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            left: -5px;
+            margin: auto;
+            width: calc(100% + 10px);
+            height: calc(100% + 10px);
+            border-radius: 10px;
+            background: linear-gradient(-45deg, #e81cff 0%, #40c9ff 100%);
+            z-index: -10;
+            pointer-events: none;
+        }
+        .card::after {
+            content: "";
+            z-index: -1;
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(-45deg, #fc00ff 0%, #00dbde 100%);
+            transform: translate3d(0, 0, 0) scale(0.95);
+            filter: blur(20px);
+        }
+        .heading {
+            font-size: 20px;
+            text-transform: capitalize;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+        .qr-frame img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+        .instructions {
+            color: #4a4a4a;
+            font-size: 14px;
+            margin-top: 10px;
+            text-align: center;
+        }
+        #log {
+            background: #111;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            max-height: 150px;
+            overflow-y: auto;
+            text-align: left;
+            width: 100%;
+            color: white;
+            margin-top: 20px;
+            box-sizing: border-box;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <p class="heading">WhatsApp Web Login</p>
+        <div class="qr-frame" id="qrcode">Loading QR code...</div>
+        <div class="instructions">Scan the QR code with your WhatsApp app</div>
+        <pre id="log">Loading logs...</pre>
+    </div>
+
+    <script>
+        const qrcodeElement = document.getElementById('qrcode');
+        const logElement = document.getElementById('log');
+        let lastQRCode = '';
+
+        async function fetchQR() {
+            try {
+                const response = await fetch('/getQR');
+                const data = await response.json();
+                if (data.qr && data.qr !== lastQRCode) {
+                    lastQRCode = data.qr;
+                    qrcodeElement.innerHTML = `<img src="${data.qr}" alt="QR Code" />`;
+                    console.log('QR code updated');
+                }
+            } catch (error) {
+                console.error('Error fetching QR code:', error);
+                qrcodeElement.innerHTML = 'Error loading QR code.';
+            }
+        }
+
+        async function fetchLogs() {
+            try {
+                const response = await fetch('/getLogs');
+                const data = await response.json();
+                logElement.innerHTML = '';
+                data.logs.forEach((log) => {
+                    const logEntry = document.createElement('div');
+                    logEntry.className = 'log-entry';
+                    logEntry.textContent = log;
+                    logElement.appendChild(logEntry);
+                });
+            } catch (error) {
+                console.error('Error fetching logs:', error);
+                logElement.textContent = 'Error loading logs.';
+            }
+        }
+        function pollData() {
+            fetchQR();
+            fetchLogs();
+            setTimeout(pollData, 5000); // Poll every 5 seconds
+        }
+
+        function redirectToLogsPage() {
+            window.location.href = '/logs';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            pollData();
+            const source = new EventSource('/events');
+            source.addEventListener('ready', () => {
+                redirectToLogsPage();
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Web JS Logs</title>
+    <!-- Black Dashboard CSS -->
+    <link href="css/black-dashboard.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #121212; 
+            margin: 0;
+            display: flex;
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh;
+            color: #E0E0E0; 
+            overflow: hidden;
+            font-family: 'Roboto', sans-serif;
+        }
+        .content {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            width: 100%;
+            padding: 20px;
+            box-sizing: border-box; 
+        }
+        .panel {
+            padding: 20px;
+            background-color: #2a2a2a; 
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(106, 13, 173, 0.2); 
+            transition: all 0.3s ease;
+            position: relative;
+            flex: 1; 
+            min-width: 200px; 
+            max-width: 100%;
+            height: 60vh; 
+        }
+        .attachment-panel {
+            flex: 0.5; 
+        }
+        .panel:hover {
+            transform: translateY(-5px);
+        }
+        .panel-title {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 18px;
+            color: #E0E0E0;
+            opacity: 0.8;
+            margin-bottom: 20px;
+        }
+        .panel-content {
+            background-color: #000000; 
+            padding: 15px;
+            border-radius: 8px;
+            width: 100%;
+            height: calc(100% - 50px); 
+            margin-top: 30px;
+            display: flex;
+            justify-content: flex-start;
+            align-items: flex-start;
+            color: #E0E0E0;
+            overflow-y: auto; 
+            word-wrap: break-word; 
+        }
+        .panel-content img {
+            max-width: 100%;
+            height: auto;
+            max-height: 100%; 
+            display: block;
+            margin: auto; 
+        }
+        .log-panel {
+            padding: 20px;
+            background-color: #2a2a2a; 
+            border-radius: 8px;
+            overflow-y: auto;
+            box-shadow: 0 4px 8px rgba(106, 13, 173, 0.2); 
+            transition: all 0.3s ease;
+            position: relative;
+            flex: 1; 
+            height: 60vh; 
+        }
+        .log-panel:hover {
+            transform: translateY(-5px);
+        }
+        .log-entry {
+            padding: 10px;
+            border: 1px solid #333;
+            border-radius: 10px;
+            cursor: pointer;
+            background-color: #1a1a1a;
+            margin-bottom: 10px;
+            transition: all .2s;
+        }
+        .log-entry:hover {
+            transform: scale(0.98);
+            border-radius: 20px;
+            box-shadow: 0px 0px 30px 1px rgba(106, 13, 173, 0.3);
+        }
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+        }
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+            }
+            .panel, .log-panel {
+                width: 100%;
+                height: auto;
+            }
+            .attachment-panel {
+                width: 100%;
+                height: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="content">
+        <div class="panel attachment-panel" id="attachment-panel">
+            <div class="panel-title">Attachment</div>
+            <div class="panel-content">No attachment</div>
+        </div>
+        <div class="panel" id="data-panel">
+            <div class="panel-title">Data</div>
+            <div class="panel-content"><pre>No data</pre></div>
+        </div>
+        <div class="log-panel" id="log-panel">
+            Loading logs...
+        </div>
+    </div>
+
+    <!-- Black Dashboard JS -->
+    <script src="js/black-dashboard.js"></script>
+    <script>
+        const attachmentPanel = document.getElementById('attachment-panel');
+        const dataPanel = document.getElementById('data-panel');
+        const logPanel = document.getElementById('log-panel');
+
+        async function fetchLogs() {
+            try {
+                const response = await fetch('/getLogs');
+                const data = await response.json();
+                logPanel.innerHTML = ''; // Clear previous logs
+                data.logs.forEach((log, index) => {
+                    const logEntry = document.createElement('div');
+                    logEntry.className = 'log-entry';
+                    logEntry.textContent = log.message;
+                    logEntry.onclick = () => displayLogDetails(log);
+                    logPanel.appendChild(logEntry);
+                });
+            } catch (error) {
+                console.error('Error fetching logs:', error);
+                logPanel.textContent = 'Error loading logs.';
+            }
+        }
+
+        function displayLogDetails(log) {
+            if (log.attachment) {
+                attachmentPanel.querySelector('.panel-content').innerHTML = `<img src="data:image/jpeg;base64,${log.attachment}" alt="Attachment">`;
+            } else {
+                attachmentPanel.querySelector('.panel-content').textContent = 'No attachment';
+            }
+
+            const formattedData = formatData(log.data);
+            dataPanel.querySelector('.panel-content').innerHTML = `<pre>${formattedData}</pre>`;
+        }
+
+        function formatData(data) {
+            if (typeof data === 'object') {
+                return `Number: ${data.number}\nMessage: ${data.message.replace(/\n/g, '<br>')}`;
+            }
+            return JSON.stringify(data, null, 2);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchLogs();
+            setInterval(fetchLogs, 5000); // Poll every 5 seconds
+        });
+    </script>
+</body>
+</html>
